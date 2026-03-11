@@ -2,6 +2,7 @@ const userModel = require("../../models/user.model");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const logger = require("../../utils/logger");
+const blacklistModel = require("../../models/blacklist.model");
 
 /**
  * @name handleSignup
@@ -40,6 +41,12 @@ const handleSignup = async (req, res) => {
         const createdUser = await userModel.create({
             fullname, email, password: hashedPassword
         });
+
+        const token = jwt.sign({ id: findUser._id, role: findUser.role },
+            process.env.JWT_SECRET, { expiresIn: "7d" });
+
+        res.cookie("token", token);
+
         return res.status(201).json({
             success: true,
             message: "User Signup successfully",
@@ -69,7 +76,7 @@ const handleSignup = async (req, res) => {
  */
 const handleLogin = async (req, res) => {
     try {
-        const {email, password } = req.body;
+        const { email, password } = req.body;
 
         if (!email || !password) {
             return res.status(400).json({
@@ -135,4 +142,24 @@ const handleLogin = async (req, res) => {
     }
 }
 
-module.exports = { handleSignup, handleLogin }
+
+/**
+ * @name handleLogout 
+ * @route GET /api/auth/login
+ * @description 
+ * @access Public
+*/
+const handleLogout = async (req, res) => {
+    const token = req.cookies.token;
+
+    if (token) {
+        await blacklistModel.create({ token });
+    }
+
+    res.clearCookie("token");
+    return res.status(200).json({
+        message: "User loggd out successfully",
+    });
+}
+
+module.exports = { handleSignup, handleLogin, handleLogout }
