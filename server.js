@@ -1,23 +1,35 @@
 const dotenv = require("dotenv");
 dotenv.config();
+
 const app = require("./src/app");
 const logger = require("./src/utils/logger");
-const connectToDb = require("./src/config/databse");
+const connectToDB = require("./src/config/database");
+const PORT = process.env.PORT || 5000;
 
-/** 
- * @listens PORT mention on env
-*/
-const connectToServer = () => {
+
+
+/**
+ * @listens Listen the server
+ * @description If get the value from env then connect if error then use 5000 port
+ */
+const startServer = async () => {
     try {
+        await connectToDB();
 
-        app.listen(process.env.PORT || 5000, () => {
-            logger.success(`Server Running on ${process.env.PORT || 5000}`)
+        app.listen(PORT, () => {
+            logger.success(`Server running on port ${PORT}`);
         });
 
     } catch (error) {
-        logger.error("Error to connect with server", error.message);
+        logger.error("Server failed to start", error.message);
+        process.exit(1);
     }
-}
+};
 
-connectToServer();
-connectToDb();
+startServer();
+
+// Handle unhandled promise rejections
+process.on("unhandledRejection", (err) => {
+    logger.error("Unhandled Promise Rejection:", err);
+    process.exit(1);
+});
